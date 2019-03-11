@@ -36,21 +36,9 @@ class DebugDatagridCommand extends ContainerAwareCommand
             'Type',
             'Parent',
         ]);
-        foreach ($datagridNames as $datagridName) {
-            if ($debugManager->isMixin($datagridName)) {
-                continue;
-            }
-
-            $table->addRow([
-                $datagridName,
-                $debugManager->getType($datagridName),
-                $debugManager->getParent($datagridName),
-            ]);
-        }
-        $table->render();
-
         if ($exactDatagrid) {
             $configuration = $debugManager->getConfiguration($exactDatagrid);
+
             $data = $configuration->toArray();
             //fix `extended_from`
             $extends = $data['extended_from'] ?? null;
@@ -58,10 +46,36 @@ class DebugDatagridCommand extends ContainerAwareCommand
                 $data['extends'] = end($extends);
             }
             unset($data['extended_from']);
+
+            $table->addRow([
+                $configuration->getName(),
+                $configuration->getDatasourceType(),
+                $data['extends'] ?? null,
+            ]);
+
+            $table->render();
+
             $definition['datagrids'][$exactDatagrid] = $data;
             if ($configuration) {
-                $output->writeln(var_export(Yaml::dump($definition, 7), true));
+                $output->writeln('');
+                $output->writeln('Datagrid configuration:');
+                $output->writeln('');
+                $output->writeln(Yaml::dump($definition, 7));
+                $output->writeln('');
             }
+        } else {
+            foreach ($datagridNames as $datagridName) {
+                if ($debugManager->isMixin($datagridName)) {
+                    continue;
+                }
+
+                $table->addRow([
+                    $datagridName,
+                    $debugManager->getType($datagridName),
+                    $debugManager->getParent($datagridName),
+                ]);
+            }
+            $table->render();
         }
     }
 
