@@ -2,24 +2,23 @@
 
 namespace Gorgo\Bundle\DatagridDebugBundle\Command;
 
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Oro\Bundle\DataGridBundle\Datagrid\ParameterBag;
+use Oro\Bundle\DataGridBundle\Datasource\Orm\OrmDatasource;
 use Symfony\Component\Console\Helper\Table;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
 
-class DebugDatagridCommand extends ContainerAwareCommand
+class DebugDatagridCommand extends AbstractDatagridDebugCommand
 {
     const NAME = 'gorgo:debug:datagrid';
 
     /**
      * {@inheritDoc}
      */
-    protected function configure()
+    public function getName()
     {
-        $this->setName(self::NAME)
-            ->addArgument('datagrid', InputArgument::OPTIONAL);
+        return self::NAME;
     }
 
     /**
@@ -27,66 +26,49 @@ class DebugDatagridCommand extends ContainerAwareCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $debugManager = $this->getContainer()->get('gorgo_datagrid_debug.manager.debug');
-        $exactDatagrid = $input->getArgument('datagrid');
-        $datagridNames = $exactDatagrid ? [$exactDatagrid] : $debugManager->getDatagridNames();
+        $gridName = $input->getArgument('datagrid');
+
         $table = new Table($output);
         $table->setHeaders([
             'Datagrid Name',
             'Type',
             'Parent',
         ]);
-        if ($exactDatagrid) {
-            $configuration = $debugManager->getConfiguration($exactDatagrid);
+        $configuration = $this->getDatagridConfigurationProvider()->getConfiguration($gridName);
 
-            $data = $configuration->toArray();
-            //fix `extended_from`
-            $extends = $data['extended_from'] ?? null;
-            if ($extends) {
-                $data['extends'] = end($extends);
-            }
-            unset($data['extended_from']);
-
-            $table->addRow([
-                $configuration->getName(),
-                $configuration->getDatasourceType(),
-                $data['extends'] ?? null,
-            ]);
-
-            $table->render();
-
-            $definition['datagrids'][$exactDatagrid] = $data;
-            if ($configuration) {
-                $output->writeln('');
-                $output->writeln('Datagrid configuration:');
-                $output->writeln('');
-                $output->writeln(Yaml::dump($definition, 7));
-                $output->writeln('');
-            }
-        } else {
-            foreach ($datagridNames as $datagridName) {
-                if ($debugManager->isMixin($datagridName)) {
-                    continue;
-                }
-
-                $table->addRow([
-                    $datagridName,
-                    $debugManager->getType($datagridName),
-                    $debugManager->getParent($datagridName),
-                ]);
-            }
-            $table->render();
+        $data = $configuration->toArray();
+        //fix `extended_from`
+        $extends = $data['extended_from'] ?? null;
+        if ($extends) {
+            $data['extends'] = end($extends);
         }
-    }
+        unset($data['extended_from']);
 
-    /**
-     * @param $gridName
-     * @param array $datagrids
-     *
-     * @return string
-     */
-    protected function getDatagridType($gridName, array $datagrids)
-    {
-        return '';
+        $table->addRow([
+            $configuration->getName(),
+            $configuration->getDatasourceType(),
+            $data['extends'] ?? null,
+        ]);
+
+        $table->render();
+
+        $definition['datagrids'][$gridName] = $data;
+        $parameters = new ParameterBag($this->parseJsonOption($input->getOption('bind')));
+        $additionalParameters = $this->parseJsonOption($input->getOption('additional'));
+        $builder = $this->getContainer()->get('oro_datagrid.datagrid.builder');
+        $datagrid = $builder->build($configuration, $parameters, $additionalParameters);
+        $output->writeln('');
+        $output->writeln('Datagrid configuration:');
+        $output->writeln('');
+        $output->writeln(Yaml::dump($datagrid->getConfig()->toArray(), 7));
+        $output->writeln('');
+        $dataSource = $datagrid->getDatasource();
+        if ($dataSource instanceof OrmDatasource) {
+            $output->writeln('SQL:');
+            $query = $dataSource->getQueryBuilder()->getQuery();
+            $output->writeln($query->getSQL());
+        } else {
+            $output->writeln(sprintf('%s', get_class($dataSource)));
+        }
     }
 }

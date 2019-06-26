@@ -5,27 +5,20 @@ namespace Gorgo\Bundle\DatagridDebugBundle\Command;
 use Doctrine\ORM\Query\Parameter;
 use Oro\Bundle\DataGridBundle\Datasource\Orm\OrmDatasource;
 use Oro\Bundle\DataGridBundle\Event\OrmResultAfter;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Helper\Table;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ProfileDatagridCommand extends ContainerAwareCommand
+class ProfileDatagridCommand extends AbstractDatagridDebugCommand
 {
     const NAME = 'gorgo:profile:datagrid';
 
     /**
      * {@inheritDoc}
      */
-    protected function configure()
+    public function getName()
     {
-        $this
-            ->setName(self::NAME)
-            ->addArgument('datagrid', InputArgument::REQUIRED)
-            ->addOption('bind', null, InputOption::VALUE_OPTIONAL, 'JSON string or path to JSON file', '{}')
-            ->addOption('additional', null, InputOption::VALUE_OPTIONAL, 'JSON string or path to JSON file', '{}');
+        return self::NAME;
     }
 
     /**
@@ -34,13 +27,13 @@ class ProfileDatagridCommand extends ContainerAwareCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         if (!$input->getOption('current-user')) {
-            $output->writeln('Option "%s" required', 'current-user');
+            $output->writeln(sprintf('Option "%s" required', 'current-user'));
 
             return 1;
         }
 
         if (!$input->getOption('current-organization')) {
-            $output->writeln('Option "%s" required', 'current-organization');
+            $output->writeln(sprintf('Option "%s" required', 'current-organization'));
 
             return 1;
         }
@@ -78,7 +71,16 @@ class ProfileDatagridCommand extends ContainerAwareCommand
         foreach ($data['data'] as $item) {
             $row = [];
             foreach ($headers as $column => $title) {
-                $row[$column] = is_array($item[$column]) ? implode(',', $item[$column]) : $item[$column];
+                if (is_array($item[$column])) {
+                    $first = reset($item[$column]);
+                    if (is_array($first)) {
+                        $row[$column] = 'ArrayData';//json_encode($item[$column]);
+                    } else {
+                        $row[$column] = implode(',', $item[$column]);
+                    }
+                    continue;
+                }
+                $row[$column] = $item[$column];
             }
             $table->addRow($row);
         }
@@ -110,25 +112,5 @@ class ProfileDatagridCommand extends ContainerAwareCommand
                 $table->render();
             }
         }
-    }
-
-    /**
-     * @param $data
-     *
-     * @return array|null
-     */
-    protected function parseJsonOption($data): ?array
-    {
-        if (is_file($data)) {
-            $data = file_get_contents($data);
-        }
-
-        $data = json_decode($data, true);
-
-        if (json_last_error()) {
-            return null;
-        }
-
-        return $data;
     }
 }
