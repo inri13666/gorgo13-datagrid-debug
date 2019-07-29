@@ -45,6 +45,6 @@ abstract class AbstractDatagridDebugCommand extends ContainerAwareCommand
      */
     protected function getDatagridConfigurationProvider()
     {
-        return $this->getContainer()->get('oro_datagrid.configuration.provider');
+        return $this->getContainer()->get('oro_datagrid.configuration.provider.chain');
     }
 }

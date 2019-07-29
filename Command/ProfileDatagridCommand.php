@@ -42,7 +42,7 @@ class ProfileDatagridCommand extends AbstractDatagridDebugCommand
         $queryData = [];
         $eventDispatcher->addListener(OrmResultAfter::NAME, function (OrmResultAfter $event) use (&$queryData) {
             $datagrid = $event->getDatagrid();
-            if ($datagrid->getDatasource() instanceof OrmDatasource) {
+            if ($datagrid->getAcceptedDatasource() instanceof OrmDatasource) {
                 $query = $event->getQuery();
                 $queryData[$datagrid->getName()][] = [
                     'sql' => $query->getSQL(),
