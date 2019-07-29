@@ -62,7 +62,7 @@ class DebugDatagridCommand extends AbstractDatagridDebugCommand
         $output->writeln('');
         $output->writeln(Yaml::dump($datagrid->getConfig()->toArray(), 7));
         $output->writeln('');
-        $dataSource = $datagrid->getDatasource();
+        $dataSource = $datagrid->getAcceptedDatasource();
         if ($dataSource instanceof OrmDatasource) {
             $output->writeln('SQL:');
             $query = $dataSource->getQueryBuilder()->getQuery();
