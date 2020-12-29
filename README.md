@@ -1,11 +1,11 @@
 #### Datagrid Debugger
 
 ```bash
-php bin/console gorgo:debug:datagrid organization-view-users-grid --bind={\"organization_id\":1}
+php bin/console gorgo:datagrid:debug organization-view-users-grid --bind={\"organization_id\":1}
 ```
 or
 ```bash
-php app/console gorgo:debug:datagrid organization-view-users-grid --bind={\"organization_id\":1}
+php app/console gorgo:datagrid:debug organization-view-users-grid --bind={\"organization_id\":1}
 ```
 
 Result:
@@ -93,11 +93,11 @@ datagrids:
 #### Datagrid Profiler
 
 ```bash
-php bin/console gorgo:profile:datagrid organization-view-users-grid --current-user=admin --current-organization=1 --bind={\"organization_id\":1}
+php bin/console gorgo:datagrid:profile organization-view-users-grid --current-user=admin --current-organization=1 --bind={\"organization_id\":1}
 ```
 or
 ```bash
-php app/console gorgo:profile:datagrid organization-view-users-grid --current-user=admin --current-organization=1 --bind={\"organization_id\":1}
+php app/console gorgo:datagrid:profile organization-view-users-grid --current-user=admin --current-organization=1 --bind={\"organization_id\":1}
 ```
 
 Result:

@@ -2,16 +2,43 @@
 
 namespace Gorgo\Bundle\DatagridDebugBundle\Command;
 
+use Oro\Bundle\DataGridBundle\Datagrid\Builder;
 use Oro\Bundle\DataGridBundle\Datagrid\ParameterBag;
 use Oro\Bundle\DataGridBundle\Datasource\Orm\OrmDatasource;
+use Oro\Bundle\DataGridBundle\Provider\ConfigurationProviderInterface;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
 
-class DebugDatagridCommand extends AbstractDatagridDebugCommand
+class DebugDatagridCommand extends Command
 {
-    const NAME = 'gorgo:debug:datagrid';
+    const NAME = 'gorgo:datagrid:debug';
+
+    private ConfigurationProviderInterface $configurationProvider;
+
+    private Builder $datagridBuilder;
+
+    public function __construct(ConfigurationProviderInterface $configurationProvider, Builder $datagridBuilder)
+    {
+        parent::__construct(self::NAME);
+        $this->configurationProvider = $configurationProvider;
+        $this->datagridBuilder = $datagridBuilder;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function configure()
+    {
+        $this
+            ->addArgument('datagrid', InputArgument::REQUIRED)
+            ->addOption('bind', null, InputOption::VALUE_OPTIONAL, 'JSON string or path to JSON file', '{}')
+            ->addOption('additional', null, InputOption::VALUE_OPTIONAL, 'JSON string or path to JSON file', '{}');
+    }
 
     /**
      * {@inheritDoc}
@@ -34,7 +61,7 @@ class DebugDatagridCommand extends AbstractDatagridDebugCommand
             'Type',
             'Parent',
         ]);
-        $configuration = $this->getDatagridConfigurationProvider()->getConfiguration($gridName);
+        $configuration = $this->configurationProvider->getConfiguration($gridName);
 
         $data = $configuration->toArray();
         //fix `extended_from`
@@ -55,8 +82,7 @@ class DebugDatagridCommand extends AbstractDatagridDebugCommand
         $definition['datagrids'][$gridName] = $data;
         $parameters = new ParameterBag($this->parseJsonOption($input->getOption('bind')));
         $additionalParameters = $this->parseJsonOption($input->getOption('additional'));
-        $builder = $this->getContainer()->get('oro_datagrid.datagrid.builder');
-        $datagrid = $builder->build($configuration, $parameters, $additionalParameters);
+        $datagrid = $this->datagridBuilder->build($configuration, $parameters, $additionalParameters);
         $output->writeln('');
         $output->writeln('Datagrid configuration:');
         $output->writeln('');
@@ -70,5 +96,20 @@ class DebugDatagridCommand extends AbstractDatagridDebugCommand
         } else {
             $output->writeln(sprintf('%s', get_class($dataSource)));
         }
+    }
+
+    private function parseJsonOption($data): ?array
+    {
+        if (is_file($data)) {
+            $data = file_get_contents($data);
+        }
+
+        $data = json_decode($data, true);
+
+        if (json_last_error()) {
+            return null;
+        }
+
+        return $data;
     }
 }

@@ -3,15 +3,52 @@
 namespace Gorgo\Bundle\DatagridDebugBundle\Command;
 
 use Doctrine\ORM\Query\Parameter;
+use Oro\Bundle\DataGridBundle\Datagrid\Manager;
 use Oro\Bundle\DataGridBundle\Datasource\Orm\OrmDatasource;
 use Oro\Bundle\DataGridBundle\Event\OrmResultAfter;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
-class ProfileDatagridCommand extends AbstractDatagridDebugCommand
+class ProfileDatagridCommand extends Command
 {
-    const NAME = 'gorgo:profile:datagrid';
+    const NAME = 'gorgo:datagrid:profile';
+
+    private EventDispatcherInterface $eventDispatcher;
+
+    private Manager $datagridManager;
+
+    private TranslatorInterface $translator;
+
+    /**
+     * @inheritDoc
+     */
+    public function __construct(
+        EventDispatcherInterface $eventDispatcher,
+        Manager $datagridManager,
+        TranslatorInterface $translator
+    ) {
+        parent::__construct(self::NAME);
+        $this->eventDispatcher = $eventDispatcher;
+        $this->datagridManager = $datagridManager;
+        $this->translator = $translator;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function configure()
+    {
+        $this
+            ->addArgument('datagrid', InputArgument::REQUIRED)
+            ->addOption('bind', null, InputOption::VALUE_OPTIONAL, 'JSON string or path to JSON file', '{}')
+            ->addOption('additional', null, InputOption::VALUE_OPTIONAL, 'JSON string or path to JSON file', '{}');
+    }
 
     /**
      * {@inheritDoc}
@@ -24,8 +61,10 @@ class ProfileDatagridCommand extends AbstractDatagridDebugCommand
     /**
      * {@inheritDoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
-    {
+    protected function execute(
+        InputInterface $input,
+        OutputInterface $output
+    ) {
         if (!$input->getOption('current-user')) {
             $output->writeln(sprintf('Option "%s" required', 'current-user'));
 
@@ -38,9 +77,8 @@ class ProfileDatagridCommand extends AbstractDatagridDebugCommand
             return 1;
         }
 
-        $eventDispatcher = $this->getContainer()->get('event_dispatcher');
         $queryData = [];
-        $eventDispatcher->addListener(OrmResultAfter::NAME, function (OrmResultAfter $event) use (&$queryData) {
+        $this->eventDispatcher->addListener(OrmResultAfter::NAME, function (OrmResultAfter $event) use (&$queryData) {
             $datagrid = $event->getDatagrid();
             if ($datagrid->getAcceptedDatasource() instanceof OrmDatasource) {
                 $query = $event->getQuery();
@@ -55,15 +93,14 @@ class ProfileDatagridCommand extends AbstractDatagridDebugCommand
         $parameters = $this->parseJsonOption($input->getOption('bind'));
         $additionalParameters = $this->parseJsonOption($input->getOption('additional'));
 
-        $datagridManager = $this->getContainer()->get('oro_datagrid.datagrid.manager');
-        $translator = $this->getContainer()->get('translator');
-
-        $datagrid = $datagridManager->getDatagrid($datagridName, $parameters, $additionalParameters);
+        $datagrid = $this->datagridManager->getDatagrid($datagridName, $parameters, $additionalParameters);
         $config = $datagrid->getConfig();
         $columns = $config->offsetGet('columns');
         $headers = [];
         foreach ($columns as $column => $options) {
-            $headers[$column] = $options['translatable'] ? $translator->trans($options['label']) : $options['label'];
+            $headers[$column] = $options['translatable']
+                ? $this->translator->trans($options['label'])
+                : $options['label'];
         }
         $table = new Table($output);
         $table->setHeaders($headers);
@@ -112,5 +149,20 @@ class ProfileDatagridCommand extends AbstractDatagridDebugCommand
                 $table->render();
             }
         }
+    }
+
+    private function parseJsonOption($data): ?array
+    {
+        if (is_file($data)) {
+            $data = file_get_contents($data);
+        }
+
+        $data = json_decode($data, true);
+
+        if (json_last_error()) {
+            return null;
+        }
+
+        return $data;
     }
 }

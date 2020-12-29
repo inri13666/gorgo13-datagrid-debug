@@ -13,8 +13,8 @@
   ],
   "minimum-stability": "dev",
   "require": {
-    "php": ">=7",
-    "oro/platform": "*"
+    "php": ">=7.4",
+    "oro/platform": ">2"
   },
   "autoload": {
     "psr-0": {
