@@ -18,9 +18,11 @@ class DebugDatagridCommand extends Command
 {
     const NAME = 'gorgo:datagrid:debug';
 
-    private ConfigurationProviderInterface $configurationProvider;
+    /** @var ConfigurationProviderInterface */
+    private $configurationProvider;
 
-    private Builder $datagridBuilder;
+    /** @var Builder */
+    private $datagridBuilder;
 
     public function __construct(ConfigurationProviderInterface $configurationProvider, Builder $datagridBuilder)
     {
@@ -30,7 +32,7 @@ class DebugDatagridCommand extends Command
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
     protected function configure()
     {
@@ -41,7 +43,7 @@ class DebugDatagridCommand extends Command
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
     public function getName()
     {
@@ -49,7 +51,7 @@ class DebugDatagridCommand extends Command
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {

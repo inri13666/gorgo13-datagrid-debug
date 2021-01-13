@@ -13,20 +13,23 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ProfileDatagridCommand extends Command
 {
     const NAME = 'gorgo:datagrid:profile';
 
-    private EventDispatcherInterface $eventDispatcher;
+    /** @var EventDispatcherInterface */
+    private $eventDispatcher;
 
-    private Manager $datagridManager;
+    /** @var Manager */
+    private $datagridManager;
 
-    private TranslatorInterface $translator;
+    /** @var TranslatorInterface */
+    private $translator;
 
     /**
-     * @inheritDoc
+     * {@inheritdoc}
      */
     public function __construct(
         EventDispatcherInterface $eventDispatcher,
@@ -40,7 +43,7 @@ class ProfileDatagridCommand extends Command
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
     protected function configure()
     {
@@ -51,7 +54,7 @@ class ProfileDatagridCommand extends Command
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
     public function getName()
     {
@@ -59,7 +62,7 @@ class ProfileDatagridCommand extends Command
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
     protected function execute(
         InputInterface $input,
